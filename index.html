@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PriceProphet - Dynamic Revenue Management</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+        }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8; 
+        }
+
+        /* Print Styles for PDF Export */
+        @media print {
+            @page {
+                margin: 20mm;
+                size: auto;
+            }
+            
+            body {
+                background-color: white !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            /* Hide non-printable elements */
+            header, 
+            nav, 
+            aside, 
+            button, 
+            .no-print,
+            input,
+            select {
+                display: none !important;
+            }
+
+            /* Reset layout for print */
+            main {
+                margin: 0 !important;
+                padding: 0 !important;
+                width: 100% !important;
+                display: block !important;
+            }
+            
+            /* Ensure grid items don't break awkwardly */
+            .grid {
+                display: block !important;
+            }
+            
+            /* Ensure cards look like document sections */
+            .bg-white {
+                box-shadow: none !important;
+                border: 1px solid #eee !important;
+                margin-bottom: 20px !important;
+                break-inside: avoid;
+            }
+
+            /* Typography adjustments for print */
+            h1, h2, h3 {
+                color: black !important;
+            }
+            
+            p, span, div {
+                color: #111 !important;
+            }
+
+            /* Force background colors to show for charts/badges */
+            * {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+        }
+    </style>
+<script type="importmap">
+{
+  "imports": {
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.30.0",
+    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.554.0"
+  }
+}
+</script>
+</head>
+<body>
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+</body>
+</html>
