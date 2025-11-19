@@ -241,15 +241,15 @@ const SimulatedBackend = {
 // --- Components ---
 
 const Header = ({ isLanding, onLaunch, onHome }: { isLanding: boolean, onLaunch: () => void, onHome: () => void }) => (
-  <header className="bg-white border-b border-gray-200 h-16 flex items-center px-6 justify-between sticky top-0 z-50 no-print">
+  <header className="bg-white/80 backdrop-blur-md border-b border-gray-200 h-16 flex items-center px-6 justify-between sticky top-0 z-50 no-print">
     <div 
-      className="flex items-center gap-2 cursor-pointer"
+      className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
       onClick={onHome}
     >
-      <div className="bg-indigo-600 p-2 rounded-lg">
+      <div className="bg-indigo-600 p-2 rounded-lg shadow-md shadow-indigo-200">
         <TrendingUp className="w-5 h-5 text-white" />
       </div>
-      <span className="text-xl font-bold text-gray-800">PriceProphet</span>
+      <span className="text-xl font-bold text-gray-900">PriceProphet</span>
     </div>
     
     <div className="flex items-center gap-4">
@@ -258,16 +258,16 @@ const Header = ({ isLanding, onLaunch, onHome }: { isLanding: boolean, onLaunch:
           <button onClick={() => document.getElementById('features')?.scrollIntoView({behavior: 'smooth'})} className="text-gray-600 hover:text-gray-900 font-medium text-sm hidden sm:block">
             Features
           </button>
-          <button onClick={onLaunch} className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+          <button onClick={onLaunch} className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm hover:shadow-md">
             Launch App
           </button>
         </div>
       ) : (
         <>
-          <button className="p-2 text-gray-500 hover:bg-gray-100 rounded-full">
+          <button className="p-2 text-gray-500 hover:bg-gray-100 rounded-full transition-colors">
             <Settings2 className="w-5 h-5" />
           </button>
-          <div className="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-700 font-medium">
+          <div className="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-700 font-medium border border-indigo-200">
             JD
           </div>
         </>
@@ -279,8 +279,8 @@ const Header = ({ isLanding, onLaunch, onHome }: { isLanding: boolean, onLaunch:
 const SidebarItem = ({ icon: Icon, label, active, onClick }: any) => (
   <button 
     onClick={onClick}
-    className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors mb-1
-      ${active ? 'bg-indigo-50 text-indigo-700 font-medium' : 'text-gray-600 hover:bg-gray-50'}`}
+    className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all mb-1
+      ${active ? 'bg-indigo-50 text-indigo-700 font-medium shadow-sm ring-1 ring-indigo-200' : 'text-gray-600 hover:bg-white/60 hover:text-gray-900'}`}
   >
     <Icon className="w-5 h-5" />
     <span>{label}</span>
@@ -291,7 +291,7 @@ const SidebarItem = ({ icon: Icon, label, active, onClick }: any) => (
 
 const Modal = ({ title, onClose, children }: { title: string, onClose: () => void, children: React.ReactNode }) => (
   <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4 backdrop-blur-sm animate-fade-in">
-    <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6 relative">
+    <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6 relative border border-gray-100">
       <div className="flex justify-between items-center mb-6">
         <h3 className="text-lg font-bold text-gray-900">{title}</h3>
         <button onClick={onClose} className="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-100 transition-colors">
@@ -412,7 +412,7 @@ const PricingInputForm = ({ onSubmit, isAnalyzing }: { onSubmit: (data: ProductI
               <input 
                 required
                 type="text" 
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
+                className="w-full px-4 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all placeholder:text-gray-400"
                 placeholder="e.g. Premium Leather Backpack"
                 value={formData.name}
                 onChange={e => setFormData({...formData, name: e.target.value})}
@@ -430,7 +430,7 @@ const PricingInputForm = ({ onSubmit, isAnalyzing }: { onSubmit: (data: ProductI
                   type="number" 
                   min="0"
                   step="0.01"
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                  className="w-full pl-10 pr-4 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none placeholder:text-gray-400"
                   placeholder="0.00"
                   value={formData.cost || ''}
                   onChange={e => setFormData({...formData, cost: parseFloat(e.target.value)})}
@@ -441,7 +441,7 @@ const PricingInputForm = ({ onSubmit, isAnalyzing }: { onSubmit: (data: ProductI
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Currency</label>
               <select 
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none bg-white"
+                className="w-full px-4 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
                 value={formData.currency}
                 onChange={e => setFormData({...formData, currency: e.target.value})}
               >
@@ -465,7 +465,7 @@ const PricingInputForm = ({ onSubmit, isAnalyzing }: { onSubmit: (data: ProductI
                 <input 
                   required
                   type="text" 
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                  className="w-full pl-10 pr-4 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none placeholder:text-gray-400"
                   placeholder="City, Region, or Country"
                   value={formData.location}
                   onChange={e => setFormData({...formData, location: e.target.value})}
@@ -477,7 +477,7 @@ const PricingInputForm = ({ onSubmit, isAnalyzing }: { onSubmit: (data: ProductI
               <label className="block text-sm font-medium text-gray-700 mb-2">Category (Optional)</label>
               <input 
                 type="text" 
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                className="w-full px-4 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none placeholder:text-gray-400"
                 placeholder="e.g. Electronics"
                 value={formData.category}
                 onChange={e => setFormData({...formData, category: e.target.value})}
@@ -488,7 +488,7 @@ const PricingInputForm = ({ onSubmit, isAnalyzing }: { onSubmit: (data: ProductI
               <label className="block text-sm font-medium text-gray-700 mb-2">Min. Desired Margin (%)</label>
               <input 
                 type="number" 
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                className="w-full px-4 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none placeholder:text-gray-400"
                 value={formData.desiredMargin}
                 onChange={e => setFormData({...formData, desiredMargin: parseFloat(e.target.value)})}
               />
@@ -556,11 +556,11 @@ const DashboardResult = ({ result, input, onBack }: { result: PricingResult, inp
           Back to Analysis
         </button>
         <div className="flex gap-2">
-           <button onClick={handlePrintPDF} className="flex items-center px-4 py-2 bg-indigo-50 border border-indigo-100 rounded-lg text-sm font-medium text-indigo-700 hover:bg-indigo-100">
+           <button onClick={handlePrintPDF} className="flex items-center px-4 py-2 bg-white/50 border border-indigo-100 rounded-lg text-sm font-medium text-indigo-700 hover:bg-indigo-50 backdrop-blur-sm transition-all">
             <Printer className="w-4 h-4 mr-2" />
             Export PDF
           </button>
-          <button onClick={handleDownloadCSV} className="flex items-center px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">
+          <button onClick={handleDownloadCSV} className="flex items-center px-4 py-2 bg-white/50 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-white backdrop-blur-sm transition-all">
             <Download className="w-4 h-4 mr-2" />
             Export CSV
           </button>
@@ -762,14 +762,14 @@ const ScenarioBuilder = () => {
               ))}
               <button 
                 onClick={() => setIsModalOpen(true)}
-                className="w-full px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-500 hover:border-gray-400 hover:text-gray-600 text-sm font-medium flex items-center justify-center gap-2 transition-colors"
+                className="w-full px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-500 hover:border-gray-400 hover:text-gray-600 text-sm font-medium flex items-center justify-center gap-2 transition-colors hover:bg-white/50"
               >
                 + Create Custom Scenario
               </button>
             </div>
           </div>
 
-          <div className="bg-gray-50 rounded-lg p-6 border border-gray-200 flex items-center justify-center">
+          <div className="bg-gray-50/50 rounded-lg p-6 border border-gray-200 flex items-center justify-center">
              {activeData ? (
                <div className="w-full space-y-4">
                  <h4 className="font-bold text-gray-900 border-b pb-2">Impact Analysis: {activeData.name}</h4>
@@ -807,7 +807,7 @@ const ScenarioBuilder = () => {
               <input
                 required
                 type="text"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
+                className="w-full px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
                 value={newScenario.name}
                 onChange={e => setNewScenario({...newScenario, name: e.target.value})}
               />
@@ -816,7 +816,7 @@ const ScenarioBuilder = () => {
               <label className="block text-sm font-medium text-gray-700 mb-1">Shipping Cost Increase (%)</label>
               <input
                 type="number"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
+                className="w-full px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
                 value={newScenario.shippingIncrease}
                 onChange={e => setNewScenario({...newScenario, shippingIncrease: Number(e.target.value)})}
               />
@@ -825,7 +825,7 @@ const ScenarioBuilder = () => {
               <label className="block text-sm font-medium text-gray-700 mb-1">Competitor Price Drop (%)</label>
               <input
                 type="number"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
+                className="w-full px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
                 value={newScenario.competitorDrop}
                 onChange={e => setNewScenario({...newScenario, competitorDrop: Number(e.target.value)})}
               />
@@ -834,7 +834,7 @@ const ScenarioBuilder = () => {
               <label className="block text-sm font-medium text-gray-700 mb-1">Demand Change (%)</label>
               <input
                 type="number"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
+                className="w-full px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
                 value={newScenario.demandChange}
                 onChange={e => setNewScenario({...newScenario, demandChange: Number(e.target.value)})}
               />
@@ -896,7 +896,7 @@ const RuleEngine = () => {
         </div>
         <button 
           onClick={() => setIsModalOpen(true)}
-          className="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700"
+          className="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 shadow-sm"
         >
           + New Rule
         </button>
@@ -904,7 +904,7 @@ const RuleEngine = () => {
 
       <div className="space-y-4">
         {rules.map(rule => (
-          <div key={rule.id} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg bg-gray-50">
+          <div key={rule.id} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg bg-gray-50/50">
             <div className="flex items-center gap-4">
               <div className={`w-2 h-2 rounded-full ${rule.active ? 'bg-green-500' : 'bg-gray-400'}`} />
               <div>
@@ -934,7 +934,7 @@ const RuleEngine = () => {
                <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Condition Field</label>
                 <select
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 bg-white"
+                  className="w-full px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
                   value={newRule.conditionField}
                   onChange={e => setNewRule({...newRule, conditionField: e.target.value as any})}
                 >
@@ -946,7 +946,7 @@ const RuleEngine = () => {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Operator</label>
                 <select
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 bg-white"
+                  className="w-full px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
                   value={newRule.operator}
                   onChange={e => setNewRule({...newRule, operator: e.target.value as any})}
                 >
@@ -963,7 +963,7 @@ const RuleEngine = () => {
                 required
                 type="text"
                 placeholder="e.g. 15 or 'Out of Stock'"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
+                className="w-full px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
                 value={newRule.value}
                 onChange={e => setNewRule({...newRule, value: e.target.value})}
               />
@@ -975,7 +975,7 @@ const RuleEngine = () => {
                 required
                 type="text"
                 placeholder="e.g. Alert User, Raise Price 5%"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
+                className="w-full px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
                 value={newRule.action}
                 onChange={e => setNewRule({...newRule, action: e.target.value})}
               />
@@ -1014,7 +1014,7 @@ const HomePage = ({ onLaunch }: { onLaunch: () => void }) => {
         
         <div className="mx-auto max-w-3xl py-32 sm:py-48 lg:py-56 text-center animate-fade-in">
           <div className="hidden sm:mb-8 sm:flex sm:justify-center">
-            <div className="relative rounded-full px-3 py-1 text-sm leading-6 text-gray-600 ring-1 ring-gray-900/10 hover:ring-gray-900/20">
+            <div className="relative rounded-full px-3 py-1 text-sm leading-6 text-gray-600 ring-1 ring-gray-900/10 hover:ring-gray-900/20 bg-white/50 backdrop-blur-sm">
               Now supported in 100+ countries and currencies.
             </div>
           </div>
@@ -1043,7 +1043,7 @@ const HomePage = ({ onLaunch }: { onLaunch: () => void }) => {
       </div>
 
       {/* Features Section */}
-      <div id="features" className="py-24 sm:py-32 bg-gray-50">
+      <div id="features" className="py-24 sm:py-32 bg-gray-50/50 backdrop-blur-sm">
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
           <div className="mx-auto max-w-2xl lg:text-center">
             <h2 className="text-base font-semibold leading-7 text-indigo-600">Smarter Revenue</h2>
@@ -1073,7 +1073,7 @@ const HomePage = ({ onLaunch }: { onLaunch: () => void }) => {
                   icon: LineChartIcon,
                 },
               ].map((feature) => (
-                <div key={feature.name} className="flex flex-col">
+                <div key={feature.name} className="flex flex-col bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
                   <div className="mb-6 flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-600">
                     <feature.icon className="h-6 w-6 text-white" aria-hidden="true" />
                   </div>
@@ -1129,17 +1129,23 @@ const App = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col font-sans text-gray-900 animate-fade-in">
+    <div className="min-h-screen bg-white flex flex-col font-sans text-gray-900 animate-fade-in relative isolate overflow-hidden">
+      {/* Background Blobs (from Landing Page but fixed for app feel) */}
+      <div className="fixed inset-0 -z-10 transform-gpu overflow-hidden blur-3xl pointer-events-none" aria-hidden="true">
+         <div className="absolute left-[calc(50%-11rem)] top-0 aspect-[1155/678] w-[36.125rem] -translate-x-1/2 rotate-[30deg] bg-gradient-to-tr from-[#ff80b5] to-[#9089fc] opacity-20 sm:left-[calc(50%-30rem)] sm:w-[72.1875rem]"></div>
+         <div className="absolute right-[calc(50%-11rem)] top-[20rem] aspect-[1155/678] w-[36.125rem] translate-x-1/2 rotate-[30deg] bg-gradient-to-tr from-[#ff80b5] to-[#9089fc] opacity-20 sm:right-[calc(50%-30rem)] sm:w-[72.1875rem]"></div>
+      </div>
+
       <Header 
         isLanding={false} 
         onLaunch={() => {}} 
         onHome={() => setViewMode('landing')}
       />
       
-      <div className="flex flex-1 max-w-7xl w-full mx-auto px-6 py-8 gap-8">
+      <div className="flex flex-1 max-w-7xl w-full mx-auto px-6 py-8 gap-8 z-10">
         {/* Sidebar */}
         <aside className="w-64 shrink-0 hidden md:block no-print">
-          <div className="sticky top-28 space-y-1">
+          <div className="sticky top-28 space-y-1 bg-white/50 backdrop-blur-xl p-4 rounded-2xl border border-white/60 shadow-sm">
             <SidebarItem 
               icon={Calculator} 
               label="Pricing Engine" 
@@ -1158,7 +1164,7 @@ const App = () => {
               active={currentView === 'rules'} 
               onClick={() => setCurrentView('rules')} 
             />
-            <div className="pt-6 border-t border-gray-200 mt-6">
+            <div className="pt-6 border-t border-gray-200/60 mt-6">
               <div className="px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
                 Saved Reports
               </div>
