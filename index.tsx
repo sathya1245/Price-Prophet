@@ -21,7 +21,9 @@ import {
   BrainCircuit,
   LineChart as LineChartIcon,
   Printer,
-  X
+  X,
+  Upload,
+  Image as ImageIcon
 } from "lucide-react";
 
 // --- Types & Interfaces ---
@@ -82,6 +84,11 @@ interface AutomationRule {
   value: number | string;
   action: string;
   active: boolean;
+}
+
+interface AppSettings {
+  logoUrl: string | null;
+  companyName: string;
 }
 
 // --- AI Service Layer ---
@@ -240,16 +247,32 @@ const SimulatedBackend = {
 
 // --- Components ---
 
-const Header = ({ isLanding, onLaunch, onHome }: { isLanding: boolean, onLaunch: () => void, onHome: () => void }) => (
+const Header = ({ 
+  isLanding, 
+  onLaunch, 
+  onHome,
+  settings,
+  onOpenSettings
+}: { 
+  isLanding: boolean, 
+  onLaunch: () => void, 
+  onHome: () => void,
+  settings: AppSettings,
+  onOpenSettings?: () => void
+}) => (
   <header className="bg-white/80 backdrop-blur-md border-b border-gray-200 h-16 flex items-center px-6 justify-between sticky top-0 z-50 no-print">
     <div 
       className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
       onClick={onHome}
     >
-      <div className="bg-indigo-600 p-2 rounded-lg shadow-md shadow-indigo-200">
-        <TrendingUp className="w-5 h-5 text-white" />
-      </div>
-      <span className="text-xl font-bold text-gray-900">PriceProphet</span>
+      {settings.logoUrl ? (
+        <img src={settings.logoUrl} alt="Logo" className="w-10 h-10 rounded-lg object-contain bg-transparent" />
+      ) : (
+        <div className="bg-indigo-600 p-2 rounded-lg shadow-md shadow-indigo-200">
+          <TrendingUp className="w-5 h-5 text-white" />
+        </div>
+      )}
+      <span className="text-xl font-bold text-gray-900">{settings.companyName}</span>
     </div>
     
     <div className="flex items-center gap-4">
@@ -264,7 +287,11 @@ const Header = ({ isLanding, onLaunch, onHome }: { isLanding: boolean, onLaunch:
         </div>
       ) : (
         <>
-          <button className="p-2 text-gray-500 hover:bg-gray-100 rounded-full transition-colors">
+          <button 
+            onClick={onOpenSettings}
+            className="p-2 text-gray-500 hover:bg-gray-100 rounded-full transition-colors"
+            title="Settings"
+          >
             <Settings2 className="w-5 h-5" />
           </button>
           <div className="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-700 font-medium border border-indigo-200">
@@ -302,6 +329,78 @@ const Modal = ({ title, onClose, children }: { title: string, onClose: () => voi
     </div>
   </div>
 );
+
+const SettingsModal = ({ 
+  settings, 
+  onSave, 
+  onClose 
+}: { 
+  settings: AppSettings, 
+  onSave: (s: AppSettings) => void, 
+  onClose: () => void 
+}) => {
+  const [formData, setFormData] = useState<AppSettings>(settings);
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFormData(prev => ({ ...prev, logoUrl: reader.result as string }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSave(formData);
+    onClose();
+  };
+
+  return (
+    <Modal title="Platform Settings" onClose={onClose}>
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Custom Logo</label>
+          <div className="flex items-center gap-4">
+            <div className="w-16 h-16 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center bg-gray-50 overflow-hidden relative group">
+              {formData.logoUrl ? (
+                <img src={formData.logoUrl} alt="Preview" className="w-full h-full object-contain" />
+              ) : (
+                <ImageIcon className="w-6 h-6 text-gray-400" />
+              )}
+            </div>
+            <div className="flex-1">
+              <label className="cursor-pointer inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors shadow-sm">
+                <Upload className="w-4 h-4 mr-2" />
+                Upload Image
+                <input type="file" accept="image/*" className="hidden" onChange={handleFileUpload} />
+              </label>
+              <p className="text-xs text-gray-500 mt-2">Recommended: Square PNG or JPG</p>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Platform Name</label>
+          <input 
+            type="text" 
+            value={formData.companyName}
+            onChange={e => setFormData(prev => ({ ...prev, companyName: e.target.value }))}
+            className="w-full px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+          />
+        </div>
+
+        <div className="pt-2">
+          <button type="submit" className="w-full bg-indigo-600 text-white py-2.5 rounded-lg font-medium hover:bg-indigo-700 transition-colors shadow-sm">
+            Save Changes
+          </button>
+        </div>
+      </form>
+    </Modal>
+  );
+};
 
 // --- Charts (Custom SVG Implementation) ---
 
@@ -1105,6 +1204,13 @@ const App = () => {
   const [lastInput, setLastInput] = useState<ProductInput | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
+  // Settings State
+  const [settings, setSettings] = useState<AppSettings>({
+    logoUrl: null,
+    companyName: "PriceProphet"
+  });
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+
   const handleAnalyze = async (data: ProductInput) => {
     setIsAnalyzing(true);
     setLastInput(data);
@@ -1122,6 +1228,7 @@ const App = () => {
           isLanding={true} 
           onLaunch={() => setViewMode('app')} 
           onHome={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          settings={settings}
         />
         <HomePage onLaunch={() => setViewMode('app')} />
       </div>
@@ -1140,6 +1247,8 @@ const App = () => {
         isLanding={false} 
         onLaunch={() => {}} 
         onHome={() => setViewMode('landing')}
+        settings={settings}
+        onOpenSettings={() => setIsSettingsOpen(true)}
       />
       
       <div className="flex flex-1 max-w-7xl w-full mx-auto px-6 py-8 gap-8 z-10">
@@ -1193,6 +1302,14 @@ const App = () => {
           {currentView === 'rules' && <RuleEngine />}
         </main>
       </div>
+
+      {isSettingsOpen && (
+        <SettingsModal 
+          settings={settings} 
+          onSave={setSettings} 
+          onClose={() => setIsSettingsOpen(false)} 
+        />
+      )}
     </div>
   );
 };
