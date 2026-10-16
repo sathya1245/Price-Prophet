@@ -152,12 +152,7 @@ Visit `http://localhost:3000` to open the dashboard.
 
 ---
 
-## 👤 Author
 
-Built as a personal project by [Your Name](https://github.com/your-username).
-Feel free to fork, explore, or reach out with ideas!
-
----
 
 <div align="center">
 
