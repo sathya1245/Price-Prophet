@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState } from 'react';
 import ReactDOM from 'react-dom/client';
-import { GoogleGenAI, Type } from "@google/genai";
+import './index.css';
 import { 
   LayoutDashboard, 
   Calculator, 
@@ -11,8 +11,6 @@ import {
   Zap, 
   Globe, 
   DollarSign, 
-  Package, 
-  AlertTriangle,
   CheckCircle2,
   ArrowRight,
   Download,
@@ -91,160 +89,316 @@ interface AppSettings {
   companyName: string;
 }
 
-// --- AI Service Layer ---
+// --- Pricing Engine (runs entirely in the browser, no API key required) ---
 
-const genAI = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// Deterministic PRNG so the same product always produces the same analysis.
+const hashString = (value: string) => {
+  let hash = 2166136261;
+  for (let i = 0; i < value.length; i++) {
+    hash ^= value.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
+};
 
-// Schema for the AI Pricing Response
-const pricingSchema = {
-  type: Type.OBJECT,
-  properties: {
-    recommendedPrice: { type: Type.NUMBER, description: "The specific recommended price point." },
-    minPrice: { type: Type.NUMBER, description: "Minimum viable price (floor)." },
-    premiumPrice: { type: Type.NUMBER, description: "Premium price point for high demand." },
-    strategy: { type: Type.STRING, description: "One of: Cost-Plus, Competitor-Based, Value-Based" },
-    explanation: { type: Type.STRING, description: "2-4 sentences explaining the pricing logic." },
-    evidence: { 
-      type: Type.ARRAY, 
-      items: { type: Type.STRING }, 
-      description: "3-5 bullet points of market evidence." 
-    },
-    confidenceScore: { type: Type.INTEGER, description: "0-100 confidence score." },
-    seasonalitySignal: { type: Type.STRING, description: "Short phrase, e.g., 'High Summer Demand'" },
-    seasonalityFactor: { type: Type.NUMBER, description: "Multiplier, e.g., 1.10 for 10% increase." },
-    seasonalityExplanation: { type: Type.STRING, description: "Reasoning for seasonality." },
-    competitors: {
-      type: Type.ARRAY,
-      description: "3 hypothetical or estimated competitors.",
-      items: {
-        type: Type.OBJECT,
-        properties: {
-          name: { type: Type.STRING },
-          price: { type: Type.NUMBER },
-          trend: { type: Type.STRING, description: "up, down, or stable" }
-        }
-      }
+const createRandom = (seed: number) => {
+  let state = seed || 1;
+  return () => {
+    state = (state + 0x6d2b79f5) >>> 0;
+    let t = state;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+};
+
+const round2 = (value: number) => Math.round(value * 100) / 100;
+
+interface CategoryProfile {
+  label: string;
+  priceIndex: number;
+  strategy: PricingResult['strategy'];
+  competitors: string[];
+}
+
+const CATEGORY_PROFILES: { match: string[]; profile: CategoryProfile }[] = [
+  {
+    match: ['electronic', 'phone', 'laptop', 'tablet', 'camera', 'audio', 'headphone', 'tv', 'gadget', 'tech'],
+    profile: {
+      label: 'Consumer Electronics',
+      priceIndex: 1.55,
+      strategy: 'Competitor-Based',
+      competitors: ['VoltMart', 'Circuit City', 'Nexus Electronics', 'GadgetHub', 'PrimeTech']
     }
   },
-  required: ["recommendedPrice", "minPrice", "premiumPrice", "explanation", "evidence", "competitors"]
+  {
+    match: ['fashion', 'apparel', 'clothing', 'shoe', 'sneaker', 'bag', 'backpack', 'wear', 'textile'],
+    profile: {
+      label: 'Fashion & Apparel',
+      priceIndex: 1.85,
+      strategy: 'Value-Based',
+      competitors: ['Urban Threads', 'StyleNest', 'Mode & Co.', 'Fabric House']
+    }
+  },
+  {
+    match: ['luxury', 'jewel', 'watch', 'premium', 'designer', 'leather'],
+    profile: {
+      label: 'Luxury Goods',
+      priceIndex: 2.3,
+      strategy: 'Value-Based',
+      competitors: ['Maison Luxe', 'Atelier Nine', 'The Heritage Co.']
+    }
+  },
+  {
+    match: ['home', 'furniture', 'kitchen', 'decor', 'mattress', 'appliance'],
+    profile: {
+      label: 'Home & Living',
+      priceIndex: 1.7,
+      strategy: 'Competitor-Based',
+      competitors: ['HomeCraft', 'Nest & Co.', 'Urban Living', 'Casa Supply']
+    }
+  },
+  {
+    match: ['beauty', 'cosmetic', 'skincare', 'perfume', 'hair', 'grooming'],
+    profile: {
+      label: 'Beauty & Personal Care',
+      priceIndex: 1.95,
+      strategy: 'Value-Based',
+      competitors: ['GlowBar', 'Pure Ritual', 'Bloom Beauty']
+    }
+  },
+  {
+    match: ['food', 'beverage', 'coffee', 'snack', 'grocery', 'drink', 'bakery'],
+    profile: {
+      label: 'Food & Beverage',
+      priceIndex: 1.35,
+      strategy: 'Cost-Plus',
+      competitors: ['FreshCart', 'Daily Basket', 'Harvest Foods']
+    }
+  },
+  {
+    match: ['sport', 'fitness', 'gym', 'outdoor', 'cycling', 'yoga'],
+    profile: {
+      label: 'Sports & Fitness',
+      priceIndex: 1.65,
+      strategy: 'Competitor-Based',
+      competitors: ['PeakGear', 'Stride Sports', 'Apex Athletics']
+    }
+  },
+  {
+    match: ['toy', 'game', 'book', 'stationery', 'craft'],
+    profile: {
+      label: 'Toys & Leisure',
+      priceIndex: 1.5,
+      strategy: 'Cost-Plus',
+      competitors: ['PlayWorks', 'BrightBox', 'The Game Shelf']
+    }
+  }
+];
+
+const DEFAULT_CATEGORY: CategoryProfile = {
+  label: 'General Merchandise',
+  priceIndex: 1.6,
+  strategy: 'Cost-Plus',
+  competitors: ['Northwind Retail', 'MetroMart', 'ValueHub', 'Apex Goods']
+};
+
+const LOCATION_INDEX: { match: string[]; index: number }[] = [
+  { match: ['new york', 'nyc'], index: 1.25 },
+  { match: ['san francisco', 'bay area', 'silicon valley'], index: 1.3 },
+  { match: ['los angeles', 'seattle', 'boston'], index: 1.2 },
+  { match: ['chicago', 'austin', 'denver'], index: 1.1 },
+  { match: ['london'], index: 1.22 },
+  { match: ['manchester', 'birmingham'], index: 1.05 },
+  { match: ['dubai', 'abu dhabi'], index: 1.12 },
+  { match: ['singapore'], index: 1.18 },
+  { match: ['tokyo', 'osaka'], index: 1.15 },
+  { match: ['sydney', 'melbourne'], index: 1.2 },
+  { match: ['toronto', 'vancouver'], index: 1.1 },
+  { match: ['berlin', 'munich'], index: 1.1 },
+  { match: ['paris'], index: 1.15 },
+  { match: ['mumbai'], index: 0.78 },
+  { match: ['bengaluru', 'bangalore'], index: 0.8 },
+  { match: ['delhi', 'gurugram', 'noida'], index: 0.74 },
+  { match: ['hyderabad'], index: 0.76 },
+  { match: ['chennai'], index: 0.72 },
+  { match: ['kolkata'], index: 0.7 },
+  { match: ['pune', 'ahmedabad'], index: 0.73 }
+];
+
+const getCategoryProfile = (input: ProductInput): CategoryProfile => {
+  const haystack = `${input.name} ${input.category}`.toLowerCase();
+  return CATEGORY_PROFILES.find(entry => entry.match.some(keyword => haystack.includes(keyword)))?.profile || DEFAULT_CATEGORY;
+};
+
+const getLocationIndex = (location: string) => {
+  const normalized = location.trim().toLowerCase();
+  return LOCATION_INDEX.find(entry => entry.match.some(keyword => normalized.includes(keyword)))?.index || 1;
+};
+
+const getSeasonality = (location: string, random: () => number): Seasonality => {
+  const month = new Date().getMonth();
+  const india = /india|mumbai|delhi|bengaluru|bangalore|hyderabad|chennai|kolkata|pune|ahmedabad/i.test(location);
+
+  if (month === 9 || month === 10) {
+    const factor = india ? 1.14 : 1.1;
+    return {
+      signal: india ? 'Festive Season Demand Surge' : 'Pre-Holiday Demand Build-Up',
+      adjustmentFactor: factor,
+      explanation: india
+        ? 'Diwali and the festive shopping window lift discretionary demand across most categories, supporting a higher price point.'
+        : 'Consumers are starting holiday shopping early, which historically supports a 10% uplift in retail prices through Q4.'
+    };
+  }
+
+  if (month === 11) {
+    return {
+      signal: 'Holiday Peak Demand',
+      adjustmentFactor: 1.12,
+      explanation: 'Peak holiday gifting season concentrates demand into a few weeks, giving sellers room to hold premium prices.'
+    };
+  }
+
+  if (month === 0) {
+    return {
+      signal: 'Post-Holiday Slowdown',
+      adjustmentFactor: 0.94,
+      explanation: 'January demand softens after the holidays, so a slightly defensive price protects conversion volume.'
+    };
+  }
+
+  if (month >= 4 && month <= 6) {
+    return {
+      signal: 'Summer Demand Window',
+      adjustmentFactor: 1.03 + Number((random() * 0.02).toFixed(2)),
+      explanation: 'Warmer months lift category interest and travel-related purchases, allowing a modest seasonal premium.'
+    };
+  }
+
+  if (month === 7) {
+    return {
+      signal: 'Late Summer Lull',
+      adjustmentFactor: 0.97,
+      explanation: 'Late-summer demand is typically flat, so pricing slightly below the seasonal anchor helps maintain volume.'
+    };
+  }
+
+  return {
+    signal: 'Stable Seasonal Demand',
+    adjustmentFactor: 1.0,
+    explanation: 'No major seasonal event is driving demand this month, so the recommendation leans on cost and competitor signals.'
+  };
 };
 
 // --- Backend Simulation (Service) ---
 
 const SimulatedBackend = {
   async analyzePrice(input: ProductInput): Promise<PricingResult> {
-    // In a real app, this would hit POST /api/suggest-price
-    
-    const prompt = `
-      Act as a Senior Pricing Analyst. Analyze this product for optimal pricing:
-      Product: ${input.name}
-      Category: ${input.category || "General"}
-      Production Cost: ${input.cost} ${input.currency}
-      Location: ${input.location}
-      Desired Margin: ${input.desiredMargin}%
+    // Runs on-device: cost-plus floor, location-adjusted competitor benchmark,
+    // and seasonal demand modelling. Same input always yields the same output.
+    const random = createRandom(hashString(`${input.name}|${input.cost}|${input.location}|${input.category}`));
+    const cost = input.cost > 0 ? input.cost : 10;
+    const desiredMargin = Math.min(Math.max(input.desiredMargin || 0, 0), 85);
+    const category = getCategoryProfile(input);
+    const locationIndex = getLocationIndex(input.location);
+    const seasonality = getSeasonality(input.location, random);
 
-      Tasks:
-      1. Determine the best pricing strategy (Cost-Plus, Competitor, or Value).
-      2. Suggest a price respecting a profit floor (Cost + 10%).
-      3. Estimate 3 likely competitors and their prices in this location.
-      4. Analyze seasonality (assume current month is ${new Date().toLocaleString('default', { month: 'long' })}).
-      5. Provide a confidence score.
-      
-      Output JSON matching the schema.
-    `;
+    const floor = round2(cost * 1.1);
+    const marginPrice = cost / (1 - desiredMargin / 100);
+    const marketAnchor = cost * category.priceIndex * locationIndex;
+    const seasonalAnchor = marketAnchor * seasonality.adjustmentFactor;
 
-    try {
-      const response = await genAI.models.generateContent({
-        model: "gemini-2.5-flash",
-        contents: prompt,
-        config: {
-          responseMimeType: "application/json",
-          responseSchema: pricingSchema,
-          temperature: 0.3 // Low temp for consistent, analytical results
-        }
-      });
+    let recommendedPrice = round2(marginPrice * 0.55 + seasonalAnchor * 0.45);
+    recommendedPrice = Math.max(recommendedPrice, floor);
 
-      const data = JSON.parse(response.text || "{}");
-      
-      // Post-process AI data to fit our internal types and generate history
-      const competitors: Competitor[] = (data.competitors || []).map((c: any) => ({
-        name: c.name,
-        price: c.price,
-        stockStatus: Math.random() > 0.8 ? 'Low Stock' : (Math.random() > 0.9 ? 'Out of Stock' : 'In Stock'),
-        trend: c.trend || 'stable',
-        history: Array.from({ length: 6 }, (_, i) => {
-          // Generate slightly random history around the current price
-          const variation = (Math.random() - 0.5) * (c.price * 0.1);
-          return Number((c.price + variation).toFixed(2));
-        }).reverse()
-      }));
+    const competitors: Competitor[] = category.competitors.slice(0, 3).map((name, i) => {
+      const competitorRandom = createRandom(hashString(`${name}|${input.location}|${i}`));
+      const price = round2(seasonalAnchor * (0.9 + competitorRandom() * 0.24));
+      const history = Array.from({ length: 6 }, () =>
+        round2(price * (0.92 + competitorRandom() * 0.16))
+      );
+      history[history.length - 1] = price;
+      const trend: Competitor['trend'] =
+        history[5] > history[4] * 1.02 ? 'up' : history[5] < history[4] * 0.98 ? 'down' : 'stable';
+      const stockRoll = competitorRandom();
+      const stockStatus: Competitor['stockStatus'] =
+        stockRoll > 0.88 ? 'Out of Stock' : stockRoll > 0.7 ? 'Low Stock' : 'In Stock';
 
-      return {
-        recommendedPrice: data.recommendedPrice,
-        priceRange: {
-          min: data.minPrice,
-          suggested: data.recommendedPrice,
-          premium: data.premiumPrice
-        },
-        profitMargin: ((data.recommendedPrice - input.cost) / data.recommendedPrice) * 100,
-        confidenceScore: data.confidenceScore,
-        explanation: data.explanation,
-        evidence: data.evidence,
-        strategy: data.strategy as any,
-        seasonality: {
-          signal: data.seasonalitySignal,
-          adjustmentFactor: data.seasonalityFactor || 1.0,
-          explanation: data.seasonalityExplanation
-        },
-        competitors: competitors
-      };
+      return { name, price, stockStatus, trend, history };
+    });
 
-    } catch (error) {
-      console.error("AI Error:", error);
-      // Fallback for demo if AI fails or API key missing
-      const basePrice = input.cost * (1 + (input.desiredMargin / 100));
-      return {
-        recommendedPrice: Math.round(basePrice * 100) / 100,
-        priceRange: { min: basePrice, suggested: basePrice, premium: basePrice * 1.2 },
-        profitMargin: input.desiredMargin,
-        confidenceScore: 50,
-        explanation: "Fallback pricing calculation due to service interruption.",
-        evidence: ["Cost basis calculation"],
-        strategy: "Cost-Plus",
-        seasonality: { signal: "Neutral", adjustmentFactor: 1, explanation: "No data" },
-        competitors: []
-      };
-    }
+    const sortedCompetitorPrices = competitors.map(c => c.price).sort((a, b) => a - b);
+    const medianCompetitor = sortedCompetitorPrices[Math.floor(sortedCompetitorPrices.length / 2)];
+    const competitorSpread = medianCompetitor > 0
+      ? ((sortedCompetitorPrices[sortedCompetitorPrices.length - 1] - sortedCompetitorPrices[0]) / medianCompetitor) * 100
+      : 0;
+
+    const strategy: PricingResult['strategy'] =
+      desiredMargin >= 35 ? 'Value-Based' : competitorSpread > 18 ? 'Competitor-Based' : category.strategy;
+
+    const profitMargin = round2(((recommendedPrice - cost) / recommendedPrice) * 100);
+    const confidenceScore = Math.min(
+      96,
+      Math.round(74 + (input.category ? 4 : 0) + (input.location ? 5 : 0) + (input.name ? 4 : 0) + random() * 5)
+    );
+    const profitFloor = round2(cost * 1.1);
+    const ceiling = round2(recommendedPrice * 1.18);
+
+    return {
+      recommendedPrice,
+      priceRange: {
+        min: Math.max(profitFloor, round2(recommendedPrice * 0.88)),
+        suggested: recommendedPrice,
+        premium: ceiling
+      },
+      profitMargin,
+      confidenceScore,
+      strategy,
+      explanation:
+        `A ${strategy.toLowerCase()} strategy fits ${input.name || 'this product'} best in ${input.location || 'this market'}. ` +
+        `The recommendation blends a ${desiredMargin}% target margin with a ${seasonality.adjustmentFactor.toFixed(2)}x seasonal signal and ` +
+        `competitor prices clustering near ${round2(medianCompetitor)} ${input.currency}. ` +
+        `It stays comfortably above the ${profitFloor} ${input.currency} margin floor while remaining within ${Math.round(competitorSpread)}% of the local price band.`,
+      evidence: [
+        `Gross-margin floor of ${profitFloor} ${input.currency} protects at least 10% profit per unit.`,
+        `${category.label} competitors sit near ${round2(medianCompetitor)} ${input.currency}, a ${Math.round(competitorSpread)}% spread across the tracked set.`,
+        `${seasonality.signal} supports a ${Math.round((seasonality.adjustmentFactor - 1) * 100)}% seasonal adjustment this month.`,
+        `Local price index for ${input.location || 'the target market'} is ${locationIndex.toFixed(2)}x the national baseline.`,
+        `A ${desiredMargin}% target margin implies a ${round2(marginPrice)} ${input.currency} list price before market adjustment.`
+      ],
+      seasonality,
+      competitors
+    };
   },
 
   calculateConversion(currentPrice: number, cost: number): ConversionPoint[] {
     // Simple elasticity model: Q = Q_max * (1 - P / P_max_willingness)
     const points: ConversionPoint[] = [];
     const range = 5; // +/- 5 steps
-    const step = currentPrice * 0.05;
-    
+    const basePrice = currentPrice > 0 ? currentPrice : Math.max(cost * 1.2, 1);
+    const step = Math.max(basePrice * 0.05, 0.01);
+
     for (let i = -range; i <= range; i++) {
-      const p = currentPrice + (i * step);
+      const p = basePrice + (i * step);
       if (p <= cost) continue; // Ignore prices below cost
-      
+
       // Hypothetical demand curve logic
-      // Assume at currentPrice, demand is 100 (baseline index)
+      // Assume at the suggested price, demand is 100 (baseline index)
       // Elasticity typically negative. Let's assume -1.5 for standard consumer goods
       const elasticity = 1.5;
-      const pctChangePrice = (p - currentPrice) / currentPrice;
+      const pctChangePrice = (p - basePrice) / basePrice;
       const pctChangeDemand = -elasticity * pctChangePrice;
       const estimatedSales = Math.max(0, Math.round(100 * (1 + pctChangeDemand)));
-      
+
       points.push({
-        price: Number(p.toFixed(2)),
+        price: round2(p),
         estimatedSales,
-        revenue: Number((p * estimatedSales).toFixed(2))
+        revenue: round2(p * estimatedSales)
       });
     }
     return points;
   }
 };
-
 // --- Components ---
 
 const Header = ({ 
@@ -310,6 +464,17 @@ const SidebarItem = ({ icon: Icon, label, active, onClick }: any) => (
       ${active ? 'bg-indigo-50 text-indigo-700 font-medium shadow-sm ring-1 ring-indigo-200' : 'text-gray-600 hover:bg-white/60 hover:text-gray-900'}`}
   >
     <Icon className="w-5 h-5" />
+    <span>{label}</span>
+  </button>
+);
+
+const MobileTab = ({ icon: Icon, label, active, onClick }: any) => (
+  <button
+    onClick={onClick}
+    className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm whitespace-nowrap transition-all
+      ${active ? 'bg-indigo-50 text-indigo-700 font-medium ring-1 ring-indigo-200' : 'text-gray-600 hover:bg-gray-100'}`}
+  >
+    <Icon className="w-4 h-4" />
     <span>{label}</span>
   </button>
 );
@@ -436,14 +601,13 @@ const LineChart = ({ data, width = 500, height = 200, color = "#4f46e5" }: { dat
   );
 };
 
-const RevenueChart = ({ data }: { data: ConversionPoint[] }) => {
+const RevenueChart = ({ data, currency }: { data: ConversionPoint[], currency: string }) => {
   if (!data.length) return null;
   const width = 600;
   const height = 250;
   const padding = 40;
   
   const maxRev = Math.max(...data.map(d => d.revenue));
-  const maxSales = Math.max(...data.map(d => d.estimatedSales));
   
   return (
     <div className="relative border border-gray-100 rounded-lg p-4 bg-white">
@@ -458,8 +622,8 @@ const RevenueChart = ({ data }: { data: ConversionPoint[] }) => {
            return (
              <g key={i} className="group hover:opacity-80 transition-opacity cursor-pointer">
                <rect x={x} y={y} width={barWidth} height={barHeight} fill="#818cf8" rx="4" />
-               <text x={x + barWidth/2} y={height + 15} textAnchor="middle" fontSize="10" fill="#64748b">${d.price}</text>
-               <text x={x + barWidth/2} y={y - 5} textAnchor="middle" fontSize="10" fill="#4f46e5" fontWeight="bold">${d.revenue}</text>
+               <text x={x + barWidth/2} y={height + 15} textAnchor="middle" fontSize="10" fill="#64748b">{currency}{d.price}</text>
+               <text x={x + barWidth/2} y={y - 5} textAnchor="middle" fontSize="10" fill="#4f46e5" fontWeight="bold">{currency}{d.revenue}</text>
              </g>
            )
         })}
@@ -501,7 +665,7 @@ const PricingInputForm = ({ onSubmit, isAnalyzing }: { onSubmit: (data: ProductI
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
         <div className="mb-8">
           <h2 className="text-2xl font-bold text-gray-900">Pricing Analysis</h2>
-          <p className="text-gray-500 mt-1">Enter product details to generate AI-driven pricing strategies.</p>
+          <p className="text-gray-500 mt-1">Enter product details to generate data-driven pricing strategies.</p>
         </div>
         
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -677,7 +841,7 @@ const DashboardResult = ({ result, input, onBack }: { result: PricingResult, inp
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="md:col-span-2 bg-white rounded-xl shadow-sm border border-indigo-100 p-6 relative overflow-hidden print:border-gray-300">
           <div className="absolute top-0 right-0 bg-indigo-600 text-white text-xs font-bold px-3 py-1 rounded-bl-lg print:bg-gray-800 print:text-white">
-            AI CONFIDENCE: {result.confidenceScore}%
+MODEL CONFIDENCE: {result.confidenceScore}%
           </div>
           
           <div className="mb-4">
@@ -768,7 +932,7 @@ const DashboardResult = ({ result, input, onBack }: { result: PricingResult, inp
             Conversion Prediction
           </h3>
           <div className="mb-4">
-            <RevenueChart data={conversionData} />
+            <RevenueChart data={conversionData} currency={currencySymbols[input.currency] || input.currency} />
           </div>
           <div className="grid grid-cols-2 gap-4">
              <div className="bg-blue-50 p-3 rounded border border-blue-100 print:bg-transparent print:border-gray-300">
@@ -1251,6 +1415,28 @@ const App = () => {
         onOpenSettings={() => setIsSettingsOpen(true)}
       />
       
+      {/* Mobile Navigation (the sidebar is hidden below the md breakpoint) */}
+      <nav className="md:hidden sticky top-16 z-40 bg-white/80 backdrop-blur-md border-b border-gray-200 px-4 py-2 flex gap-2 overflow-x-auto no-print">
+        <MobileTab
+          icon={Calculator}
+          label="Pricing"
+          active={currentView === 'pricing'}
+          onClick={() => setCurrentView('pricing')}
+        />
+        <MobileTab
+          icon={BarChart3}
+          label="Scenarios"
+          active={currentView === 'scenarios'}
+          onClick={() => setCurrentView('scenarios')}
+        />
+        <MobileTab
+          icon={Zap}
+          label="Rules"
+          active={currentView === 'rules'}
+          onClick={() => setCurrentView('rules')}
+        />
+      </nav>
+
       <div className="flex flex-1 max-w-7xl w-full mx-auto px-6 py-8 gap-8 z-10">
         {/* Sidebar */}
         <aside className="w-64 shrink-0 hidden md:block no-print">

@@ -2,23 +2,32 @@
 
 # 🔮 PriceProphet
 
-**AI-powered dynamic pricing. Smarter prices. Bigger margins.**
+**AI-inspired dynamic pricing. Smarter prices. Bigger margins.**
 
-[![Status](https://img.shields.io/badge/status-active-success.svg)]()
-[![Made with AI](https://img.shields.io/badge/Powered%20by-AI-blueviolet.svg)]()
+[![Live Demo](https://img.shields.io/badge/demo-live-success.svg)](https://sathya1245.github.io/Price-Prophet/)
+[![Made with React](https://img.shields.io/badge/React-18-blue.svg)](https://react.dev/)
+[![Powered by Vite](https://img.shields.io/badge/Vite-5-purple.svg)](https://vitejs.dev/)
 [![Personal Project](https://img.shields.io/badge/project-personal-orange.svg)]()
 
-[Features](#-features) · [How It Works](#-how-it-works) · [Getting Started](#-getting-started) · [Roadmap](#-roadmap)
+[Live Demo](https://sathya1245.github.io/Price-Prophet/) · [Features](#-features) · [How It Works](#-how-it-works) · [Getting Started](#-getting-started) · [Roadmap](#-roadmap)
 
 ---
 
 </div>
 
+## 🌐 Live Demo
+
+**https://sathya1245.github.io/Price-Prophet/**
+
+The demo runs entirely in your browser — no sign-up, no API key, no backend. Open the link, click **Launch Platform**, and enter any product to get a full pricing report (recommended price, price band, competitor intelligence, seasonality, conversion curve, market evidence, CSV/PDF export).
+
+---
+
 ## 🧠 What is PriceProphet?
 
-**PriceProphet** is a personal AI-powered dynamic pricing platform that helps businesses find the *perfect* selling price — every time. By combining real-time competitor intelligence, market trend analysis, location-aware demand signals, and smart forecasting models, PriceProphet removes the guesswork from pricing strategy.
+**PriceProphet** is a personal dynamic pricing platform that helps businesses find the *perfect* selling price — every time. By combining competitor intelligence, market trend analysis, location-aware demand signals, and forecasting models, PriceProphet removes the guesswork from pricing strategy.
 
-Whether you're a retailer, marketplace, or e-commerce brand, PriceProphet continuously adapts prices to maximize revenue, stay competitive, and respond to market shifts before competitors do.
+Whether you're a retailer, marketplace, or e-commerce brand, PriceProphet adapts prices to maximize revenue, stay competitive, and respond to market shifts.
 
 > *"Stop leaving money on the table. Let the data decide."*
 
@@ -27,34 +36,34 @@ Whether you're a retailer, marketplace, or e-commerce brand, PriceProphet contin
 ## ✨ Features
 
 ### 🕵️ Competitor Intelligence
-- Real-time price monitoring across competitors
-- Automated alerts when rivals change pricing
-- Historical competitor price tracking and trend analysis
+- Estimated competitor prices, stock status, and 6-month price history
+- Price band spread across the tracked competitor set
+- Category-aware competitor benchmarking
 
 ### 📈 Market Trend Analysis
-- Industry-wide demand signal detection
-- Seasonality modeling and holiday pattern recognition
-- Macro-economic factor integration
+- Seasonal demand signals with an explicit adjustment factor
+- Month-by-month retail pattern modelling (holiday peak, summer window, lulls)
+- Festival-aware uplift for Indian markets (Diwali / festive season)
 
 ### 📍 Location-Aware Pricing
-- Geo-specific demand and willingness-to-pay modeling
-- Regional competitor benchmarking
-- Local market saturation scoring
+- Location price index for 20+ major markets (US, UK, EU, Gulf, India, APAC)
+- Regional benchmark pricing rather than a single global default
+- Local price index shown in the evidence panel
 
 ### 🔮 Smart Forecasting
-- AI-driven price elasticity predictions
-- Revenue and margin impact simulations
-- "What-if" scenario modeling before you commit
+- Gross-margin floor so a recommendation never breaches cost + 10%
+- Revenue vs. price conversion curve with a negative-elasticity demand model
+- Confidence score that reflects how complete your input is
 
 ### ⚡ Dynamic Price Engine
-- Automated price adjustments on configurable schedules
-- Rule-based guardrails (floor/ceiling prices, margins)
-- A/B price testing with statistical significance tracking
+- Pricing strategy selection (Cost-Plus / Competitor-Based / Value-Based)
+- Scenario modeler for shipping shocks, competitor drops and demand swings
+- Rule engine with trigger-based actions and per-rule on/off toggles
 
 ### 📊 Dashboard & Reporting
-- Unified pricing dashboard across all products
-- Revenue attribution and ROI reporting
-- Exportable pricing logs
+- Unified pricing dashboard with recommended / floor / premium price bands
+- Print-ready PDF export and CSV export
+- Customizable platform name and logo
 
 ---
 
@@ -65,22 +74,36 @@ Whether you're a retailer, marketplace, or e-commerce brand, PriceProphet contin
 │                      PriceProphet                        │
 │                                                          │
 │  ┌─────────────┐   ┌──────────────┐   ┌──────────────┐  │
-│  │  Data Layer │ → │  AI Engine   │ → │ Price Output │  │
+│  │  Data Layer │ → │  Price Model │ → │ Price Output │  │
 │  └─────────────┘   └──────────────┘   └──────────────┘  │
 │                                                          │
-│  Sources:            Models:             Actions:        │
-│  • Competitor feeds  • Demand forecast   • Dashboard UI  │
-│  • Market signals    • Elasticity model  • CSV export    │
-│  • Location data     • Trend detection   • Alerts        │
-│  • Your sales data   • Anomaly alerts    • Auto-pricing  │
+│  Inputs:            Models:              Actions:        │
+│  • Cost             • Margin floor        • Dashboard UI │
+│  • Category         • Location index      • CSV export   │
+│  • Location         • Seasonality         • PDF export   │
+│  • Target margin    • Elasticity curve    • Scenario sim │
 └──────────────────────────────────────────────────────────┘
 ```
 
-1. **Ingest** — Add your product catalog and competitor sources.
-2. **Analyze** — The AI engine processes competitor data, market trends, and location signals continuously.
-3. **Forecast** — Demand and revenue models generate price recommendations with confidence scores.
-4. **Act** — Apply prices automatically or review recommendations before publishing.
-5. **Learn** — Feedback loops improve model accuracy from actual sales outcomes.
+1. **Ingest** — Add your product, cost, market location, and target margin.
+2. **Analyze** — The model resolves a category profile, location price index, and seasonal signal.
+3. **Forecast** — A margin floor, competitor benchmark, and seasonal anchor are blended into a recommendation with a confidence score.
+4. **Act** — Review the report, export it as CSV/PDF, or model the impact in the scenario builder.
+5. **Learn** — Tune the margin floor and automation rules to match your business.
+
+### 🧮 Deterministic pricing model
+
+The public demo deliberately ships **no API key and no network calls**. `SimulatedBackend.analyzePrice()` (in `index.tsx`) computes:
+
+| Signal | How it is derived |
+| --- | --- |
+| Margin floor | `cost × 1.10`, and `cost / (1 − target margin)` for the list-price target |
+| Competitor benchmark | `cost × category price index × location index × seasonal factor` |
+| Seasonality | Current month + market (holiday peak, summer window, festive season in India) |
+| Strategy | Value-Based at ≥35% margin, Competitor-Based on a wide price band, otherwise the category default |
+| Conversion curve | Constant-elasticity demand model (`−1.5`), revenue max shown as optimal |
+
+Results are deterministic per product (seeded PRNG), so the same input always yields the same report — handy for screenshots, reviews, and tests.
 
 ---
 
@@ -88,71 +111,63 @@ Whether you're a retailer, marketplace, or e-commerce brand, PriceProphet contin
 
 ### Prerequisites
 
-- Node.js `>= 18.x` or Python `>= 3.10`
-- PostgreSQL `>= 14`
-- Redis `>= 7`
+- Node.js `>= 18` (Node 20 recommended)
+
+No database, cache, or environment variables are required.
 
 ### Installation
 
 ```bash
-# Clone the repository
-git clone https://github.com/your-username/priceprophet.git
-cd priceprophet
+git clone https://github.com/sathya1245/Price-Prophet.git
+cd Price-Prophet
 
 # Install dependencies
 npm install
-
-# Copy environment config
-cp .env.example .env
-```
-
-### Configuration
-
-Edit `.env` with your local settings:
-
-```env
-# Database
-DATABASE_URL=postgresql://user:password@localhost:5432/priceprophet
-REDIS_URL=redis://localhost:6379
-
-# Competitor Monitoring
-SCRAPER_INTERVAL_MINUTES=30
-MAX_COMPETITORS_PER_PRODUCT=10
-
-# Location
-DEFAULT_REGION=US
 ```
 
 ### Run the App
 
 ```bash
-# Start everything
+# Start the dev server (http://localhost:5173)
 npm run dev
 
-# Or individually
-npm run start:engine     # AI pricing engine
-npm run start:scraper    # Competitor monitoring
-npm run start:dashboard  # Web dashboard
+# Type-check and build the production bundle into dist/
+npm run build
+
+# Preview the production build locally
+npm run preview
 ```
 
-Visit `http://localhost:3000` to open the dashboard.
+---
+
+## ☁️ Deployment
+
+The live demo is a static build published to **GitHub Pages**.
+
+```bash
+# Build and publish the production bundle to the gh-pages branch
+npm run deploy
+```
+
+- `npm run deploy` runs `vite build`, then pushes `dist/` to the `gh-pages` branch, which GitHub Pages serves.
+- `vite.config.ts` sets `base: './'`, so the same `dist/` folder also works on Netlify, Vercel, Cloudflare Pages, or any static host with no changes.
+- Optional: to publish automatically on every push to `main`, add a Pages workflow (`.github/workflows/deploy.yml` using `actions/upload-pages-artifact` + `actions/deploy-pages`) and switch **Settings → Pages → Source** to *GitHub Actions*. Pushing that file requires a token with the `workflow` scope.
 
 ---
 
 ## 🗺 Roadmap
 
-- [x] Core competitor price monitoring
-- [x] AI demand forecasting engine
+- [x] Competitor price intelligence with history
 - [x] Location-based pricing signals
-- [x] Dashboard & reporting
+- [x] Seasonality modelling and confidence scoring
+- [x] Scenario modeler, rule engine, and CSV/PDF export
 - [ ] Real-time price update streaming (WebSocket)
-- [ ] LLM-powered pricing explanations
+- [ ] Optional LLM-powered pricing explanations (bring-your-own-key, server-side)
 - [ ] Mobile alerts
-- [ ] Multi-currency & multi-region support
+- [ ] Multi-currency conversion via live FX rates
+- [ ] Persistence for saved reports and custom rules
 
 ---
-
-
 
 <div align="center">
 

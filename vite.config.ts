@@ -1,7 +1,9 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
-// https://vitejs.dev/config/
+// Relative base keeps the build portable across GitHub Pages project sites
+// and any other static host.
 export default defineConfig({
+  base: './',
   plugins: [react()]
 })
